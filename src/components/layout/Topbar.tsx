@@ -38,13 +38,20 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md md:px-6">
-      <Button variant="ghost" size="icon" className="md:hidden" onClick={onMenuClick}>
-        <Menu className="h-5 w-5" />
+      <Button
+        variant="outline"
+        size="sm"
+        className="md:hidden gap-2 px-2.5"
+        onClick={onMenuClick}
+        aria-label="Open navigation menu"
+      >
+        <Menu className="h-4 w-4" />
+        <span className="text-xs font-medium">Menu</span>
       </Button>
 
-      <div className="hidden md:flex items-center gap-1.5 text-sm">
-        <span className="text-muted-foreground">Connecttly</span>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+      <div className="flex items-center gap-1.5 text-sm">
+        <span className="hidden sm:inline text-muted-foreground">Connecttly</span>
+        <ChevronRight className="hidden sm:inline h-3.5 w-3.5 text-muted-foreground" />
         <span className="font-medium">{title}</span>
       </div>
 
