@@ -2,16 +2,59 @@ import { PageHeader } from "@/components/PageHeader";
 import { suppliers } from "@/data/mock";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Star } from "lucide-react";
+import { Plus, Star, Download } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { exportCSV } from "@/lib/exportCSV";
+import { toast } from "sonner";
 
 export default function Suppliers() {
+  const [open, setOpen] = useState(false);
+
   return (
     <>
       <PageHeader
         title="Suppliers"
         description="Manage vendors, performance and purchase relationships."
-        actions={<Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> Add supplier</Button>}
+        actions={
+          <>
+            <Button size="sm" variant="outline" onClick={() => { exportCSV("suppliers", suppliers); toast.success("Suppliers exported"); }}>
+              <Download className="mr-1.5 h-4 w-4" /> Export
+            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> Add supplier</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add supplier</DialogTitle>
+                  <DialogDescription>Create a new supplier record.</DialogDescription>
+                </DialogHeader>
+                <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); toast.success("Supplier created"); setOpen(false); }}>
+                  <div className="space-y-1.5 sm:col-span-2"><Label>Company name</Label><Input required placeholder="Northwind Traders" /></div>
+                  <div className="space-y-1.5"><Label>Contact name</Label><Input required placeholder="Aarav Mehta" /></div>
+                  <div className="space-y-1.5"><Label>Email</Label><Input type="email" required placeholder="contact@supplier.com" /></div>
+                  <div className="space-y-1.5"><Label>Phone</Label><Input placeholder="+91 90000 00000" /></div>
+                  <div className="space-y-1.5"><Label>Country</Label>
+                    <Select defaultValue="IN"><SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["IN","AE","SG","US","DE","CN"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <DialogFooter className="sm:col-span-2">
+                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button type="submit" className="bg-gradient-primary text-primary-foreground">Create supplier</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </>
+        }
       />
       <div className="surface-card overflow-x-auto">
         <Table>

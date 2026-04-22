@@ -8,6 +8,8 @@ import {
   totals, stockMovement30d, categoryDistribution, warehouseUtilizationData,
   activities, alerts, formatCurrency, formatCompact,
 } from "@/data/mock";
+import { exportCSV } from "@/lib/exportCSV";
+import { toast } from "sonner";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie,
   PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -38,7 +40,13 @@ export default function Dashboard() {
         description="Live view across all warehouses, shipments, and stock movements."
         actions={
           <>
-            <Button variant="outline" size="sm"><Download className="mr-1.5 h-4 w-4" /> Export</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { exportCSV("dashboard-snapshot", [totals]); toast.success("Snapshot exported"); }}
+            >
+              <Download className="mr-1.5 h-4 w-4" /> Export
+            </Button>
             <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={() => nav("/app/inbound")}>
               <Plus className="mr-1.5 h-4 w-4" /> New shipment
             </Button>
