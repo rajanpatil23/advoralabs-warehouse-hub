@@ -3,8 +3,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
-const users = [
+const initialUsers = [
   { name: "Aarav Mehta", email: "aarav@connecttly.io", role: "Admin", warehouse: "All", status: "active", last: "2m ago" },
   { name: "Priya Sharma", email: "priya@connecttly.io", role: "Warehouse Manager", warehouse: "MUM-01", status: "active", last: "12m ago" },
   { name: "Rohan Iyer", email: "rohan@connecttly.io", role: "Inventory Staff", warehouse: "BLR-02", status: "active", last: "1h ago" },
@@ -21,13 +27,73 @@ const roleClr: Record<string, string> = {
   Viewer: "bg-muted text-muted-foreground border-border",
 };
 
+const ROLES = ["Admin", "Warehouse Manager", "Inventory Staff", "Dispatch Operator", "Viewer"];
+const WHS = ["All", "MUM-01", "BLR-02", "DEL-03", "DXB-04"];
+
 export default function Users() {
+  const [open, setOpen] = useState(false);
+  const [users, setUsers] = useState(initialUsers);
+
   return (
     <>
       <PageHeader
         title="Users & roles"
         description="Team members, roles, warehouse access and recent activity."
-        actions={<Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> Invite user</Button>}
+        actions={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> Invite user</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Invite team member</DialogTitle>
+                <DialogDescription>They'll receive an email invitation to join your workspace.</DialogDescription>
+              </DialogHeader>
+              <form
+                className="grid gap-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.currentTarget as HTMLFormElement;
+                  const fd = new FormData(form);
+                  const newUser = {
+                    name: String(fd.get("name") || ""),
+                    email: String(fd.get("email") || ""),
+                    role: String(fd.get("role") || "Viewer"),
+                    warehouse: String(fd.get("warehouse") || "All"),
+                    status: "active",
+                    last: "just now",
+                  };
+                  setUsers((prev) => [newUser, ...prev]);
+                  toast.success(`Invited ${newUser.email}`);
+                  setOpen(false);
+                }}
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5"><Label>Full name</Label><Input name="name" required placeholder="Asha Patel" /></div>
+                  <div className="space-y-1.5"><Label>Email</Label><Input name="email" required type="email" placeholder="asha@connecttly.io" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5"><Label>Role</Label>
+                    <Select name="role" defaultValue="Inventory Staff">
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5"><Label>Warehouse access</Label>
+                    <Select name="warehouse" defaultValue="All">
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{WHS.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">Send invite</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        }
       />
       <div className="surface-card overflow-x-auto">
         <Table>
@@ -55,7 +121,7 @@ export default function Users() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${roleClr[u.role]}`}>
+                  <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${roleClr[u.role] || "bg-muted text-muted-foreground border-border"}`}>
                     {u.role}
                   </span>
                 </TableCell>

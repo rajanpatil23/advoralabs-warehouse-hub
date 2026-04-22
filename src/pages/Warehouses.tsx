@@ -3,16 +3,45 @@ import { warehouses, products, formatCompact } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Building2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 const zones = ["A — Receiving", "B — Bulk", "C — Pick", "D — Dispatch"];
 
 export default function Warehouses() {
+  const [open, setOpen] = useState(false);
   return (
     <>
       <PageHeader
         title="Warehouses"
         description="Locations, zones and bin utilization across your network."
-        actions={<Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> Add warehouse</Button>}
+        actions={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> Add warehouse</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add warehouse</DialogTitle>
+                <DialogDescription>Create a new physical location.</DialogDescription>
+              </DialogHeader>
+              <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); toast.success("Warehouse created"); setOpen(false); }}>
+                <div className="space-y-1.5 sm:col-span-2"><Label>Name</Label><Input required placeholder="Pune Hub" /></div>
+                <div className="space-y-1.5"><Label>Code</Label><Input required placeholder="PUN-05" /></div>
+                <div className="space-y-1.5"><Label>City</Label><Input required placeholder="Pune" /></div>
+                <div className="space-y-1.5"><Label>Country</Label><Input required defaultValue="IN" /></div>
+                <div className="space-y-1.5"><Label>Capacity (units)</Label><Input required type="number" defaultValue={8000} /></div>
+                <DialogFooter className="sm:col-span-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">Create warehouse</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        }
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -73,7 +102,6 @@ export default function Warehouses() {
                 </div>
               </div>
 
-              {/* Visual bin grid */}
               <div className="mt-4">
                 <div className="text-xs font-medium text-muted-foreground mb-2">Bin map (preview)</div>
                 <div className="grid grid-cols-12 gap-1">

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { outboundOrders, warehouseById, productById, formatCurrency } from "@/data/mock";
+import { outboundOrders as initialOrders, warehouseById, productById, formatCurrency, warehouses, products } from "@/data/mock";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,11 @@ import { Plus, Eye, MapPin, Package, Truck, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 const stages: { key: string; label: string; icon: typeof Package }[] = [
   { key: "approved", label: "Approved", icon: CheckCircle2 },
@@ -17,30 +22,90 @@ const stages: { key: string; label: string; icon: typeof Package }[] = [
   { key: "delivered", label: "Delivered", icon: MapPin },
 ];
 const stageOrder: Record<string, number> = { new: 0, approved: 1, picking: 2, packed: 3, dispatched: 4, delivered: 5, cancelled: -1 };
+const nextStatus: Record<string, string> = { new: "approved", approved: "picking", picking: "packed", packed: "dispatched", dispatched: "delivered" };
 
 export default function Outbound() {
   const [tab, setTab] = useState("all");
   const [open, setOpen] = useState<string | null>(null);
-  const sel = outboundOrders.find((o) => o.id === open);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [orders, setOrders] = useState(initialOrders);
 
-  const filtered = outboundOrders.filter((o) => {
+  const sel = useMemo(() => orders.find((o) => o.id === open), [open, orders]);
+
+  const filtered = orders.filter((o) => {
     if (tab === "all") return true;
     if (tab === "open") return ["new", "approved", "picking", "packed"].includes(o.status);
     if (tab === "shipped") return ["dispatched", "delivered"].includes(o.status);
     return o.status === tab;
   });
 
+  const advance = (id: string) => {
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== id) return o;
+        const next = nextStatus[o.status];
+        if (!next) {
+          toast.info("Order is already delivered");
+          return o;
+        }
+        toast.success(`Order ${o.ref} → ${next}`);
+        return { ...o, status: next as typeof o.status };
+      })
+    );
+  };
+
   return (
     <>
       <PageHeader
         title="Outbound orders"
         description="Pick, pack, dispatch and track shipments to customers."
-        actions={<Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> New order</Button>}
+        actions={
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> New order</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create outbound order</DialogTitle>
+                <DialogDescription>Send goods to a customer.</DialogDescription>
+              </DialogHeader>
+              <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); toast.success("Order created"); setCreateOpen(false); }}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5"><Label>Customer</Label><Input required placeholder="Lyra Retail" /></div>
+                  <div className="space-y-1.5"><Label>City</Label><Input required placeholder="Mumbai" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5"><Label>Warehouse</Label>
+                    <Select defaultValue={warehouses[0].id}><SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.code}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5"><Label>Priority</Label>
+                    <Select defaultValue="normal"><SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["low","normal","high","urgent"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1.5"><Label>Primary product</Label>
+                  <Select defaultValue={products[0].id}><SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{products.slice(0, 30).map((p) => <SelectItem key={p.id} value={p.id}>{p.sku} — {p.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">Create order</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        }
       />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="all">All ({outboundOrders.length})</TabsTrigger>
+          <TabsTrigger value="all">All ({orders.length})</TabsTrigger>
           <TabsTrigger value="open">Open</TabsTrigger>
           <TabsTrigger value="picking">Picking</TabsTrigger>
           <TabsTrigger value="shipped">Shipped</TabsTrigger>
@@ -158,8 +223,10 @@ export default function Outbound() {
               </div>
 
               <div className="mt-6 flex gap-2">
-                <Button variant="outline" className="flex-1">Print delivery note</Button>
-                <Button className="flex-1 bg-gradient-primary text-primary-foreground">Advance status</Button>
+                <Button variant="outline" className="flex-1" onClick={() => window.print()}>Print delivery note</Button>
+                <Button className="flex-1 bg-gradient-primary text-primary-foreground" onClick={() => advance(sel.id)}>
+                  Advance status
+                </Button>
               </div>
             </>
           )}

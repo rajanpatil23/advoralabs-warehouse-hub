@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { inboundShipments, supplierById, warehouseById, productById } from "@/data/mock";
+import { inboundShipments, supplierById, warehouseById, productById, suppliers, warehouses } from "@/data/mock";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,15 @@ import { format } from "date-fns";
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 export default function Inbound() {
   const [open, setOpen] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const sel = inboundShipments.find((s) => s.id === open);
 
   return (
@@ -19,7 +25,39 @@ export default function Inbound() {
       <PageHeader
         title="Inbound shipments"
         description="Receive stock, capture damages and close out POs."
-        actions={<Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> New shipment</Button>}
+        actions={
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> New shipment</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create inbound shipment</DialogTitle>
+                <DialogDescription>Schedule an expected receipt from a supplier.</DialogDescription>
+              </DialogHeader>
+              <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); toast.success("Inbound shipment created"); setCreateOpen(false); }}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5"><Label>PO reference</Label><Input required placeholder="GRN-2026-1099" /></div>
+                  <div className="space-y-1.5"><Label>Expected date</Label><Input required type="date" /></div>
+                </div>
+                <div className="space-y-1.5"><Label>Supplier</Label>
+                  <Select defaultValue={suppliers[0].id}><SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5"><Label>Receiving warehouse</Label>
+                  <Select defaultValue={warehouses[0].id}><SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.code} — {w.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">Create shipment</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        }
       />
 
       <div className="surface-card overflow-x-auto">
@@ -115,8 +153,13 @@ export default function Inbound() {
               </div>
 
               <div className="mt-6 flex gap-2">
-                <Button variant="outline" className="flex-1">Print GRN</Button>
-                <Button className="flex-1 bg-gradient-primary text-primary-foreground">Receive stock</Button>
+                <Button variant="outline" className="flex-1" onClick={() => { window.print(); }}>Print GRN</Button>
+                <Button
+                  className="flex-1 bg-gradient-primary text-primary-foreground"
+                  onClick={() => { toast.success(`Stock received for ${sel.ref}`); setOpen(null); }}
+                >
+                  Receive stock
+                </Button>
               </div>
             </>
           )}
