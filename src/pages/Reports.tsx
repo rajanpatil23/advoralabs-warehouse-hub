@@ -5,6 +5,8 @@ import { Activity, BarChart3, TrendingUp, Wallet } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { exportCSV } from "@/lib/exportCSV";
+import { toast } from "sonner";
 
 const tooltipStyle = {
   contentStyle: { background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12, color: "hsl(var(--popover-foreground))" },
@@ -20,7 +22,23 @@ export default function Reports() {
       <PageHeader
         title="Reports & analytics"
         description="Operational insights, inventory health and fulfillment performance."
-        actions={<Button size="sm" variant="outline"><Download className="mr-1.5 h-4 w-4" /> Export PDF</Button>}
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const rows = products.map((p) => ({
+                sku: p.sku, name: p.name, category: p.category,
+                available: totalAvailable(p), reorderLevel: p.reorderLevel,
+                cost: p.cost, value: totalAvailable(p) * p.cost,
+              }));
+              exportCSV("inventory-report", rows);
+              toast.success("Report exported");
+            }}
+          >
+            <Download className="mr-1.5 h-4 w-4" /> Export report
+          </Button>
+        }
       />
 
       <div className="stat-grid">
