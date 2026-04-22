@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { products as initialProducts, categories, totalAvailable, formatCurrency, supplierById, type Product } from "@/data/mock";
 import { Button } from "@/components/ui/button";
@@ -102,7 +102,7 @@ export default function Products() {
     setOpen(true);
   };
 
-  const saveProduct = (e: React.FormEvent<HTMLFormElement>) => {
+  const saveProduct = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const payload: Product = editing
       ? {

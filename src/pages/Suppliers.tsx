@@ -119,7 +119,7 @@ export default function Suppliers() {
                     </Select>
                   </div>
                   <div className="space-y-1.5"><Label>Status</Label>
-                    <Select value={form.status} onValueChange={(value: Supplier["status"]) => setForm((prev) => ({ ...prev, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger>
+                    <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value as Supplier["status"] }))}><SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="inactive">Inactive</SelectItem>
