@@ -17,6 +17,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { exportCSV } from "@/lib/exportCSV";
 
 export default function Products() {
   const [q, setQ] = useState("");
@@ -46,7 +47,21 @@ export default function Products() {
         description={`${products.length} SKUs across ${categories.length} categories`}
         actions={
           <>
-            <Button variant="outline" size="sm"><Download className="mr-1.5 h-4 w-4" /> Export</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const rows = filtered.map((p) => ({
+                  sku: p.sku, name: p.name, category: p.category, brand: p.brand,
+                  price: p.price, cost: p.cost, available: totalAvailable(p),
+                  reorderLevel: p.reorderLevel, status: p.status,
+                }));
+                exportCSV("products", rows);
+                toast.success(`Exported ${rows.length} products`);
+              }}
+            >
+              <Download className="mr-1.5 h-4 w-4" /> Export
+            </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="bg-gradient-primary text-primary-foreground">
