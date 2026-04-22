@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { inboundShipments, supplierById, warehouseById, productById, suppliers, warehouses } from "@/data/mock";
+import { inboundShipments as initialShipments, supplierById, warehouseById, productById, suppliers, warehouses } from "@/data/mock";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,92 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { EntityActionMenu } from "@/components/EntityActionMenu";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+
+type ShipmentRow = typeof initialShipments[number];
+
+type ShipmentForm = {
+  ref: string;
+  expectedDate: string;
+  supplierId: string;
+  warehouseId: string;
+  status: ShipmentRow["status"];
+};
+
+const defaultForm: ShipmentForm = {
+  ref: "",
+  expectedDate: new Date().toISOString().slice(0, 10),
+  supplierId: suppliers[0].id,
+  warehouseId: warehouses[0].id,
+  status: "expected",
+};
 
 export default function Inbound() {
   const [open, setOpen] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const sel = inboundShipments.find((s) => s.id === open);
+  const [shipments, setShipments] = useState(initialShipments);
+  const [editing, setEditing] = useState<ShipmentRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ShipmentRow | null>(null);
+  const [form, setForm] = useState<ShipmentForm>(defaultForm);
+  const sel = useMemo(() => shipments.find((s) => s.id === open), [open, shipments]);
+
+  const reset = () => {
+    setEditing(null);
+    setForm(defaultForm);
+  };
+
+  const openCreate = () => {
+    reset();
+    setCreateOpen(true);
+  };
+
+  const openEdit = (shipment: ShipmentRow) => {
+    setEditing(shipment);
+    setForm({
+      ref: shipment.ref,
+      expectedDate: shipment.expectedDate.slice(0, 10),
+      supplierId: shipment.supplierId,
+      warehouseId: shipment.warehouseId,
+      status: shipment.status,
+    });
+    setCreateOpen(true);
+  };
+
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const payload: ShipmentRow = editing
+      ? {
+          ...editing,
+          ref: form.ref,
+          expectedDate: new Date(form.expectedDate).toISOString(),
+          supplierId: form.supplierId,
+          warehouseId: form.warehouseId,
+          status: form.status,
+        }
+      : {
+          id: `inb-local-${Date.now()}`,
+          ref: form.ref || `GRN-2026-${String(1100 + shipments.length)}`,
+          supplierId: form.supplierId,
+          warehouseId: form.warehouseId,
+          expectedDate: new Date(form.expectedDate).toISOString(),
+          status: form.status,
+          items: [],
+        };
+
+    setShipments((prev) => editing ? prev.map((item) => (item.id === editing.id ? payload : item)) : [payload, ...prev]);
+    toast.success(editing ? `Updated ${payload.ref}` : `Created ${payload.ref}`);
+    setCreateOpen(false);
+    reset();
+  };
+
+  const remove = () => {
+    if (!deleteTarget) return;
+    setShipments((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+    if (open === deleteTarget.id) setOpen(null);
+    toast.success(`Deleted ${deleteTarget.ref}`);
+    setDeleteTarget(null);
+  };
 
   return (
     <>
@@ -26,33 +107,40 @@ export default function Inbound() {
         title="Inbound shipments"
         description="Receive stock, capture damages and close out POs."
         actions={
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <Dialog open={createOpen} onOpenChange={(state) => { setCreateOpen(state); if (!state) reset(); }}>
             <DialogTrigger asChild>
-              <Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> New shipment</Button>
+              <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={openCreate}><Plus className="mr-1.5 h-4 w-4" /> New shipment</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create inbound shipment</DialogTitle>
-                <DialogDescription>Schedule an expected receipt from a supplier.</DialogDescription>
+                <DialogTitle>{editing ? "Edit inbound shipment" : "Create inbound shipment"}</DialogTitle>
+                <DialogDescription>{editing ? "Update the receipt plan and current shipment state." : "Schedule an expected receipt from a supplier."}</DialogDescription>
               </DialogHeader>
-              <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); toast.success("Inbound shipment created"); setCreateOpen(false); }}>
+              <form className="grid gap-3" onSubmit={submit}>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5"><Label>PO reference</Label><Input required placeholder="GRN-2026-1099" /></div>
-                  <div className="space-y-1.5"><Label>Expected date</Label><Input required type="date" /></div>
+                  <div className="space-y-1.5"><Label>PO reference</Label><Input required value={form.ref} onChange={(e) => setForm((prev) => ({ ...prev, ref: e.target.value }))} placeholder="GRN-2026-1099" /></div>
+                  <div className="space-y-1.5"><Label>Expected date</Label><Input required type="date" value={form.expectedDate} onChange={(e) => setForm((prev) => ({ ...prev, expectedDate: e.target.value }))} /></div>
                 </div>
                 <div className="space-y-1.5"><Label>Supplier</Label>
-                  <Select defaultValue={suppliers[0].id}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select value={form.supplierId} onValueChange={(value) => setForm((prev) => ({ ...prev, supplierId: value }))}><SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5"><Label>Receiving warehouse</Label>
-                  <Select defaultValue={warehouses[0].id}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select value={form.warehouseId} onValueChange={(value) => setForm((prev) => ({ ...prev, warehouseId: value }))}><SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.code} — {w.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1.5"><Label>Status</Label>
+                  <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value as ShipmentRow["status"] }))}><SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(["draft", "expected", "partial", "received", "closed"] as ShipmentRow["status"][]).map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">Create shipment</Button>
+                  <Button type="button" variant="outline" onClick={() => { setCreateOpen(false); reset(); }}>Cancel</Button>
+                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">{editing ? "Save shipment" : "Create shipment"}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -75,7 +163,7 @@ export default function Inbound() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {inboundShipments.map((s) => {
+            {shipments.map((s) => {
               const totalExp = s.items.reduce((a, x) => a + x.expected, 0);
               const totalRec = s.items.reduce((a, x) => a + x.received, 0);
               const pct = Math.round((totalRec / Math.max(1, totalExp)) * 100);
@@ -92,9 +180,12 @@ export default function Inbound() {
                   </TableCell>
                   <TableCell><StatusBadge status={s.status} /></TableCell>
                   <TableCell>
-                    <Button size="sm" variant="ghost" onClick={() => setOpen(s.id)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setOpen(s.id)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <EntityActionMenu onEdit={() => openEdit(s)} onDelete={() => setDeleteTarget(s)} editLabel="Edit shipment" deleteLabel="Delete shipment" />
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -165,6 +256,15 @@ export default function Inbound() {
           )}
         </SheetContent>
       </Sheet>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(state) => !state && setDeleteTarget(null)}
+        title="Delete inbound shipment?"
+        description={deleteTarget ? `This removes ${deleteTarget.ref} from the inbound board in this demo.` : ""}
+        confirmLabel="Delete shipment"
+        onConfirm={remove}
+      />
     </>
   );
 }

@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { products, categories, totalAvailable, formatCurrency, supplierById } from "@/data/mock";
+import { products as initialProducts, categories, totalAvailable, formatCurrency, supplierById, type Product } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,8 +18,37 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { exportCSV } from "@/lib/exportCSV";
+import { EntityActionMenu } from "@/components/EntityActionMenu";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+
+type ProductFormState = {
+  name: string;
+  sku: string;
+  barcode: string;
+  category: string;
+  brand: string;
+  cost: string;
+  price: string;
+  reorderLevel: string;
+  safetyStock: string;
+  description: string;
+};
+
+const defaultForm: ProductFormState = {
+  name: "",
+  sku: "",
+  barcode: "",
+  category: categories[0]?.name ?? "",
+  brand: "",
+  cost: "0",
+  price: "0",
+  reorderLevel: "30",
+  safetyStock: "15",
+  description: "",
+};
 
 export default function Products() {
+  const [items, setItems] = useState(initialProducts);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
@@ -27,24 +56,104 @@ export default function Products() {
   const [page, setPage] = useState(1);
   const perPage = 10;
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [form, setForm] = useState<ProductFormState>(defaultForm);
+
+  useEffect(() => {
+    if (!open) {
+      setForm(defaultForm);
+      setEditing(null);
+    }
+  }, [open]);
 
   const filtered = useMemo(() => {
-    return products.filter((p) => {
+    return items.filter((p) => {
       if (cat !== "all" && p.category !== cat) return false;
       if (status !== "all" && p.status !== status) return false;
       if (q && !(`${p.name} ${p.sku} ${p.barcode}`.toLowerCase().includes(q.toLowerCase()))) return false;
       return true;
     });
-  }, [q, cat, status]);
+  }, [items, q, cat, status]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / perPage));
   const paged = filtered.slice((page - 1) * perPage, page * perPage);
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm(defaultForm);
+    setOpen(true);
+  };
+
+  const openEdit = (product: Product) => {
+    setEditing(product);
+    setForm({
+      name: product.name,
+      sku: product.sku,
+      barcode: product.barcode,
+      category: product.category,
+      brand: product.brand,
+      cost: String(product.cost),
+      price: String(product.price),
+      reorderLevel: String(product.reorderLevel),
+      safetyStock: String(product.safetyStock),
+      description: "",
+    });
+    setOpen(true);
+  };
+
+  const saveProduct = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const payload: Product = editing
+      ? {
+          ...editing,
+          name: form.name,
+          sku: form.sku,
+          barcode: form.barcode,
+          category: form.category,
+          brand: form.brand,
+          cost: Number(form.cost),
+          price: Number(form.price),
+          reorderLevel: Number(form.reorderLevel),
+          safetyStock: Number(form.safetyStock),
+        }
+      : {
+          id: `prd-local-${Date.now()}`,
+          sku: form.sku,
+          name: form.name,
+          barcode: form.barcode,
+          category: form.category,
+          brand: form.brand,
+          unit: "pcs",
+          weightKg: 0.5,
+          price: Number(form.price),
+          cost: Number(form.cost),
+          reorderLevel: Number(form.reorderLevel),
+          safetyStock: Number(form.safetyStock),
+          supplierId: initialProducts[0]?.supplierId ?? "sup-1",
+          status: "active",
+          batchTracked: false,
+          expiryTracked: false,
+          stock: {},
+        };
+
+    setItems((prev) => editing ? prev.map((item) => (item.id === editing.id ? payload : item)) : [payload, ...prev]);
+    toast.success(editing ? `Updated ${payload.sku}` : `Created ${payload.sku}`);
+    setOpen(false);
+  };
+
+  const deleteProduct = () => {
+    if (!deleteTarget) return;
+    setItems((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+    toast.success(`Deleted ${deleteTarget.sku}`);
+    setDeleteTarget(null);
+  };
 
   return (
     <>
       <PageHeader
         title="Products"
-        description={`${products.length} SKUs across ${categories.length} categories`}
+        description={`${items.length} SKUs across ${categories.length} categories`}
         actions={
           <>
             <Button
@@ -64,38 +173,35 @@ export default function Products() {
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="bg-gradient-primary text-primary-foreground">
+                <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={openCreate}>
                   <Plus className="mr-1.5 h-4 w-4" /> Add product
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-xl">
                 <DialogHeader>
-                  <DialogTitle>Create new product</DialogTitle>
-                  <DialogDescription>Add a SKU to your catalog. You can edit details later.</DialogDescription>
+                  <DialogTitle>{editing ? "Edit product" : "Create new product"}</DialogTitle>
+                  <DialogDescription>{editing ? "Update the product record and keep catalog data current." : "Add a SKU to your catalog. You can edit details later."}</DialogDescription>
                 </DialogHeader>
-                <form
-                  className="grid gap-4 sm:grid-cols-2"
-                  onSubmit={(e) => { e.preventDefault(); toast.success("Product created"); setOpen(false); }}
-                >
-                  <div className="space-y-1.5 sm:col-span-2"><Label>Product name</Label><Input required placeholder="Apex Wireless Earbuds" /></div>
-                  <div className="space-y-1.5"><Label>SKU</Label><Input required placeholder="ELE-0123" /></div>
-                  <div className="space-y-1.5"><Label>Barcode</Label><Input placeholder="8901234567890" /></div>
+                <form className="grid gap-4 sm:grid-cols-2" onSubmit={saveProduct}>
+                  <div className="space-y-1.5 sm:col-span-2"><Label>Product name</Label><Input required value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Apex Wireless Earbuds" /></div>
+                  <div className="space-y-1.5"><Label>SKU</Label><Input required value={form.sku} onChange={(e) => setForm((prev) => ({ ...prev, sku: e.target.value }))} placeholder="ELE-0123" /></div>
+                  <div className="space-y-1.5"><Label>Barcode</Label><Input value={form.barcode} onChange={(e) => setForm((prev) => ({ ...prev, barcode: e.target.value }))} placeholder="8901234567890" /></div>
                   <div className="space-y-1.5">
                     <Label>Category</Label>
-                    <Select defaultValue="Electronics">
+                    <Select value={form.category} onValueChange={(value) => setForm((prev) => ({ ...prev, category: value }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5"><Label>Brand</Label><Input placeholder="Nimbus" /></div>
-                  <div className="space-y-1.5"><Label>Cost price</Label><Input required type="number" min="0" placeholder="0" /></div>
-                  <div className="space-y-1.5"><Label>Selling price</Label><Input required type="number" min="0" placeholder="0" /></div>
-                  <div className="space-y-1.5"><Label>Reorder level</Label><Input type="number" min="0" defaultValue={30} /></div>
-                  <div className="space-y-1.5"><Label>Safety stock</Label><Input type="number" min="0" defaultValue={15} /></div>
-                  <div className="space-y-1.5 sm:col-span-2"><Label>Description</Label><Textarea rows={3} placeholder="Short description…" /></div>
+                  <div className="space-y-1.5"><Label>Brand</Label><Input value={form.brand} onChange={(e) => setForm((prev) => ({ ...prev, brand: e.target.value }))} placeholder="Nimbus" /></div>
+                  <div className="space-y-1.5"><Label>Cost price</Label><Input required type="number" min="0" value={form.cost} onChange={(e) => setForm((prev) => ({ ...prev, cost: e.target.value }))} placeholder="0" /></div>
+                  <div className="space-y-1.5"><Label>Selling price</Label><Input required type="number" min="0" value={form.price} onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))} placeholder="0" /></div>
+                  <div className="space-y-1.5"><Label>Reorder level</Label><Input type="number" min="0" value={form.reorderLevel} onChange={(e) => setForm((prev) => ({ ...prev, reorderLevel: e.target.value }))} /></div>
+                  <div className="space-y-1.5"><Label>Safety stock</Label><Input type="number" min="0" value={form.safetyStock} onChange={(e) => setForm((prev) => ({ ...prev, safetyStock: e.target.value }))} /></div>
+                  <div className="space-y-1.5 sm:col-span-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="Short description…" /></div>
                   <DialogFooter className="sm:col-span-2">
                     <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button type="submit" className="bg-gradient-primary text-primary-foreground">Create product</Button>
+                    <Button type="submit" className="bg-gradient-primary text-primary-foreground">{editing ? "Save changes" : "Create product"}</Button>
                   </DialogFooter>
                 </form>
               </DialogContent>
@@ -144,6 +250,7 @@ export default function Products() {
                   <TableHead className="text-right">Stock</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-[60px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -172,11 +279,14 @@ export default function Products() {
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(p.price)}</TableCell>
                       <TableCell><StatusBadge status={p.status} /></TableCell>
+                       <TableCell>
+                         <EntityActionMenu onEdit={() => openEdit(p)} onDelete={() => setDeleteTarget(p)} editLabel="Edit product" deleteLabel="Delete product" />
+                       </TableCell>
                     </TableRow>
                   );
                 })}
                 {paged.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center py-12 text-sm text-muted-foreground">No products match your filters</TableCell></TableRow>
+                   <TableRow><TableCell colSpan={8} className="text-center py-12 text-sm text-muted-foreground">No products match your filters</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -198,6 +308,9 @@ export default function Products() {
                     <span className="font-semibold">{formatCurrency(p.price)}</span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">{stock} in stock</div>
+                    <div className="mt-3 flex justify-end">
+                      <EntityActionMenu onEdit={() => openEdit(p)} onDelete={() => setDeleteTarget(p)} editLabel="Edit product" deleteLabel="Delete product" />
+                    </div>
                 </div>
               );
             })}
@@ -213,6 +326,15 @@ export default function Products() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(state) => !state && setDeleteTarget(null)}
+        title="Delete product?"
+        description={deleteTarget ? `This will remove ${deleteTarget.name} from the catalog list in this demo workspace.` : ""}
+        confirmLabel="Delete product"
+        onConfirm={deleteProduct}
+      />
     </>
   );
 }

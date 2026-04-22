@@ -1,14 +1,17 @@
+import { useState, type FormEvent } from "react";
+
 import { PageHeader } from "@/components/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { EntityActionMenu } from "@/components/EntityActionMenu";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const initialUsers = [
   { name: "Aarav Mehta", email: "aarav@connecttly.io", role: "Admin", warehouse: "All", status: "active", last: "2m ago" },
@@ -30,9 +33,76 @@ const roleClr: Record<string, string> = {
 const ROLES = ["Admin", "Warehouse Manager", "Inventory Staff", "Dispatch Operator", "Viewer"];
 const WHS = ["All", "MUM-01", "BLR-02", "DEL-03", "DXB-04"];
 
+type UserRow = typeof initialUsers[number];
+
+type UserForm = {
+  name: string;
+  email: string;
+  role: string;
+  warehouse: string;
+  status: string;
+};
+
+const defaultForm: UserForm = {
+  name: "",
+  email: "",
+  role: "Inventory Staff",
+  warehouse: "All",
+  status: "active",
+};
+
 export default function Users() {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState(initialUsers);
+  const [editing, setEditing] = useState<UserRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [form, setForm] = useState<UserForm>(defaultForm);
+
+  const reset = () => {
+    setEditing(null);
+    setForm(defaultForm);
+  };
+
+  const openCreate = () => {
+    reset();
+    setOpen(true);
+  };
+
+  const openEdit = (user: UserRow) => {
+    setEditing(user);
+    setForm({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      warehouse: user.warehouse,
+      status: user.status,
+    });
+    setOpen(true);
+  };
+
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const payload: UserRow = {
+      name: form.name,
+      email: form.email,
+      role: form.role,
+      warehouse: form.warehouse,
+      status: form.status,
+      last: editing?.last ?? "just now",
+    };
+
+    setUsers((prev) => editing ? prev.map((user) => (user.email === editing.email ? payload : user)) : [payload, ...prev]);
+    toast.success(editing ? `Updated ${payload.email}` : `Invited ${payload.email}`);
+    setOpen(false);
+    reset();
+  };
+
+  const remove = () => {
+    if (!deleteTarget) return;
+    setUsers((prev) => prev.filter((user) => user.email !== deleteTarget.email));
+    toast.success(`Removed ${deleteTarget.email}`);
+    setDeleteTarget(null);
+  };
 
   return (
     <>
@@ -40,55 +110,46 @@ export default function Users() {
         title="Users & roles"
         description="Team members, roles, warehouse access and recent activity."
         actions={
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(state) => { setOpen(state); if (!state) reset(); }}>
             <DialogTrigger asChild>
-              <Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> Invite user</Button>
+              <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={openCreate}><Plus className="mr-1.5 h-4 w-4" /> Invite user</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Invite team member</DialogTitle>
-                <DialogDescription>They'll receive an email invitation to join your workspace.</DialogDescription>
+                <DialogTitle>{editing ? "Edit team member" : "Invite team member"}</DialogTitle>
+                <DialogDescription>{editing ? "Update role, warehouse scope, or access state." : "They'll receive an email invitation to join your workspace."}</DialogDescription>
               </DialogHeader>
-              <form
-                className="grid gap-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const form = e.currentTarget as HTMLFormElement;
-                  const fd = new FormData(form);
-                  const newUser = {
-                    name: String(fd.get("name") || ""),
-                    email: String(fd.get("email") || ""),
-                    role: String(fd.get("role") || "Viewer"),
-                    warehouse: String(fd.get("warehouse") || "All"),
-                    status: "active",
-                    last: "just now",
-                  };
-                  setUsers((prev) => [newUser, ...prev]);
-                  toast.success(`Invited ${newUser.email}`);
-                  setOpen(false);
-                }}
-              >
+              <form className="grid gap-3" onSubmit={submit}>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5"><Label>Full name</Label><Input name="name" required placeholder="Asha Patel" /></div>
-                  <div className="space-y-1.5"><Label>Email</Label><Input name="email" required type="email" placeholder="asha@connecttly.io" /></div>
+                  <div className="space-y-1.5"><Label>Full name</Label><Input required value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Asha Patel" /></div>
+                  <div className="space-y-1.5"><Label>Email</Label><Input required type="email" value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="asha@connecttly.io" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5"><Label>Role</Label>
-                    <Select name="role" defaultValue="Inventory Staff">
+                    <Select value={form.role} onValueChange={(value) => setForm((prev) => ({ ...prev, role: value }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5"><Label>Warehouse access</Label>
-                    <Select name="warehouse" defaultValue="All">
+                    <Select value={form.warehouse} onValueChange={(value) => setForm((prev) => ({ ...prev, warehouse: value }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{WHS.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 </div>
+                <div className="space-y-1.5"><Label>Status</Label>
+                  <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">Send invite</Button>
+                  <Button type="button" variant="outline" onClick={() => { setOpen(false); reset(); }}>Cancel</Button>
+                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">{editing ? "Save user" : "Send invite"}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -104,6 +165,7 @@ export default function Users() {
               <TableHead>Warehouse access</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Last active</TableHead>
+              <TableHead className="w-[60px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -128,11 +190,23 @@ export default function Users() {
                 <TableCell><span className="font-mono text-xs">{u.warehouse}</span></TableCell>
                 <TableCell><StatusBadge status={u.status} /></TableCell>
                 <TableCell><span className="text-sm text-muted-foreground">{u.last}</span></TableCell>
+                <TableCell>
+                  <EntityActionMenu onEdit={() => openEdit(u)} onDelete={() => setDeleteTarget(u)} editLabel="Edit user" deleteLabel="Delete user" />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(state) => !state && setDeleteTarget(null)}
+        title="Delete user?"
+        description={deleteTarget ? `This removes ${deleteTarget.name} from the team list in this demo workspace.` : ""}
+        confirmLabel="Delete user"
+        onConfirm={remove}
+      />
     </>
   );
 }

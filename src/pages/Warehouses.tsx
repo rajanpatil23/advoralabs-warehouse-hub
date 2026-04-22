@@ -1,42 +1,124 @@
+import { useState, type FormEvent } from "react";
+
 import { PageHeader } from "@/components/PageHeader";
-import { warehouses, products, formatCompact } from "@/data/mock";
+import { warehouses as initialWarehouses, products, formatCompact, type Warehouse } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Building2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { EntityActionMenu } from "@/components/EntityActionMenu";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const zones = ["A — Receiving", "B — Bulk", "C — Pick", "D — Dispatch"];
 
+type WarehouseForm = {
+  name: string;
+  code: string;
+  city: string;
+  country: string;
+  capacity: string;
+};
+
+const defaultForm: WarehouseForm = {
+  name: "",
+  code: "",
+  city: "",
+  country: "IN",
+  capacity: "8000",
+};
+
 export default function Warehouses() {
   const [open, setOpen] = useState(false);
+  const [items, setItems] = useState(initialWarehouses);
+  const [editing, setEditing] = useState<Warehouse | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Warehouse | null>(null);
+  const [form, setForm] = useState<WarehouseForm>(defaultForm);
+
+  const reset = () => {
+    setEditing(null);
+    setForm(defaultForm);
+  };
+
+  const openCreate = () => {
+    reset();
+    setOpen(true);
+  };
+
+  const openEdit = (warehouse: Warehouse) => {
+    setEditing(warehouse);
+    setForm({
+      name: warehouse.name,
+      code: warehouse.code,
+      city: warehouse.city,
+      country: warehouse.country,
+      capacity: String(warehouse.capacity),
+    });
+    setOpen(true);
+  };
+
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const capacity = Number(form.capacity);
+    const payload: Warehouse = editing
+      ? {
+          ...editing,
+          name: form.name,
+          code: form.code,
+          city: form.city,
+          country: form.country,
+          capacity,
+          used: Math.min(editing.used, capacity),
+        }
+      : {
+          id: `wh-local-${Date.now()}`,
+          name: form.name,
+          code: form.code,
+          city: form.city,
+          country: form.country,
+          capacity,
+          used: 0,
+        };
+
+    setItems((prev) => editing ? prev.map((item) => (item.id === editing.id ? payload : item)) : [payload, ...prev]);
+    toast.success(editing ? `Updated ${payload.code}` : `Created ${payload.code}`);
+    setOpen(false);
+    reset();
+  };
+
+  const remove = () => {
+    if (!deleteTarget) return;
+    setItems((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+    toast.success(`Deleted ${deleteTarget.code}`);
+    setDeleteTarget(null);
+  };
+
   return (
     <>
       <PageHeader
         title="Warehouses"
         description="Locations, zones and bin utilization across your network."
         actions={
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(state) => { setOpen(state); if (!state) reset(); }}>
             <DialogTrigger asChild>
-              <Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> Add warehouse</Button>
+              <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={openCreate}><Plus className="mr-1.5 h-4 w-4" /> Add warehouse</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add warehouse</DialogTitle>
-                <DialogDescription>Create a new physical location.</DialogDescription>
+                <DialogTitle>{editing ? "Edit warehouse" : "Add warehouse"}</DialogTitle>
+                <DialogDescription>{editing ? "Update this location's identity and capacity." : "Create a new physical location."}</DialogDescription>
               </DialogHeader>
-              <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); toast.success("Warehouse created"); setOpen(false); }}>
-                <div className="space-y-1.5 sm:col-span-2"><Label>Name</Label><Input required placeholder="Pune Hub" /></div>
-                <div className="space-y-1.5"><Label>Code</Label><Input required placeholder="PUN-05" /></div>
-                <div className="space-y-1.5"><Label>City</Label><Input required placeholder="Pune" /></div>
-                <div className="space-y-1.5"><Label>Country</Label><Input required defaultValue="IN" /></div>
-                <div className="space-y-1.5"><Label>Capacity (units)</Label><Input required type="number" defaultValue={8000} /></div>
+              <form className="grid gap-3 sm:grid-cols-2" onSubmit={submit}>
+                <div className="space-y-1.5 sm:col-span-2"><Label>Name</Label><Input required value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Pune Hub" /></div>
+                <div className="space-y-1.5"><Label>Code</Label><Input required value={form.code} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))} placeholder="PUN-05" /></div>
+                <div className="space-y-1.5"><Label>City</Label><Input required value={form.city} onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))} placeholder="Pune" /></div>
+                <div className="space-y-1.5"><Label>Country</Label><Input required value={form.country} onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))} /></div>
+                <div className="space-y-1.5"><Label>Capacity (units)</Label><Input required type="number" value={form.capacity} onChange={(e) => setForm((prev) => ({ ...prev, capacity: e.target.value }))} /></div>
                 <DialogFooter className="sm:col-span-2">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">Create warehouse</Button>
+                  <Button type="button" variant="outline" onClick={() => { setOpen(false); reset(); }}>Cancel</Button>
+                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">{editing ? "Save warehouse" : "Create warehouse"}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -45,7 +127,7 @@ export default function Warehouses() {
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {warehouses.map((w) => {
+        {items.map((w) => {
           const pct = Math.round((w.used / w.capacity) * 100);
           const skus = products.filter((p) => p.stock[w.id]).length;
           const units = products.reduce((s, p) => s + (p.stock[w.id]?.available ?? 0), 0);
@@ -63,9 +145,12 @@ export default function Warehouses() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-muted-foreground">Utilization</div>
-                  <div className="text-lg font-semibold">{pct}%</div>
+                <div className="flex items-start gap-2">
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">Utilization</div>
+                    <div className="text-lg font-semibold">{pct}%</div>
+                  </div>
+                  <EntityActionMenu onEdit={() => openEdit(w)} onDelete={() => setDeleteTarget(w)} editLabel="Edit warehouse" deleteLabel="Delete warehouse" />
                 </div>
               </div>
 
@@ -125,6 +210,15 @@ export default function Warehouses() {
           );
         })}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(state) => !state && setDeleteTarget(null)}
+        title="Delete warehouse?"
+        description={deleteTarget ? `This removes ${deleteTarget.name} from the active network in this demo.` : ""}
+        confirmLabel="Delete warehouse"
+        onConfirm={remove}
+      />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { outboundOrders as initialOrders, warehouseById, productById, formatCurrency, warehouses, products } from "@/data/mock";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { EntityActionMenu } from "@/components/EntityActionMenu";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const stages: { key: string; label: string; icon: typeof Package }[] = [
   { key: "approved", label: "Approved", icon: CheckCircle2 },
@@ -24,13 +26,37 @@ const stages: { key: string; label: string; icon: typeof Package }[] = [
 const stageOrder: Record<string, number> = { new: 0, approved: 1, picking: 2, packed: 3, dispatched: 4, delivered: 5, cancelled: -1 };
 const nextStatus: Record<string, string> = { new: "approved", approved: "picking", picking: "packed", packed: "dispatched", dispatched: "delivered" };
 
+type OrderRow = typeof initialOrders[number];
+
+type OrderForm = {
+  customer: string;
+  city: string;
+  warehouseId: string;
+  priority: OrderRow["priority"];
+  productId: string;
+  status: OrderRow["status"];
+};
+
+const defaultForm: OrderForm = {
+  customer: "",
+  city: "",
+  warehouseId: warehouses[0].id,
+  priority: "normal",
+  productId: products[0].id,
+  status: "new",
+};
+
 export default function Outbound() {
   const [tab, setTab] = useState("all");
   const [open, setOpen] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [orders, setOrders] = useState(initialOrders);
+  const [editing, setEditing] = useState<OrderRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<OrderRow | null>(null);
+  const [form, setForm] = useState<OrderForm>(defaultForm);
 
   const sel = useMemo(() => orders.find((o) => o.id === open), [open, orders]);
+  const selectedProduct = useMemo(() => products.find((product) => product.id === form.productId) ?? products[0], [form.productId]);
 
   const filtered = orders.filter((o) => {
     if (tab === "all") return true;
@@ -54,34 +80,100 @@ export default function Outbound() {
     );
   };
 
+  const reset = () => {
+    setEditing(null);
+    setForm(defaultForm);
+  };
+
+  const openCreate = () => {
+    reset();
+    setCreateOpen(true);
+  };
+
+  const openEdit = (order: OrderRow) => {
+    setEditing(order);
+    setForm({
+      customer: order.customer,
+      city: order.city,
+      warehouseId: order.warehouseId,
+      priority: order.priority,
+      productId: order.items[0]?.productId ?? products[0].id,
+      status: order.status,
+    });
+    setCreateOpen(true);
+  };
+
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const item = editing?.items[0]
+      ? { ...editing.items[0], productId: form.productId }
+      : { productId: form.productId, qty: 1, picked: 0 };
+    const payload: OrderRow = editing
+      ? {
+          ...editing,
+          customer: form.customer,
+          city: form.city,
+          warehouseId: form.warehouseId,
+          priority: form.priority,
+          status: form.status,
+          items: [item, ...editing.items.slice(1)],
+          total: selectedProduct.price * item.qty,
+        }
+      : {
+          id: `out-local-${Date.now()}`,
+          ref: `SO-2026-${String(5000 + orders.length + 1)}`,
+          customer: form.customer,
+          city: form.city,
+          warehouseId: form.warehouseId,
+          date: new Date().toISOString(),
+          status: form.status,
+          priority: form.priority,
+          items: [item],
+          total: selectedProduct.price * item.qty,
+        };
+
+    setOrders((prev) => editing ? prev.map((order) => (order.id === editing.id ? payload : order)) : [payload, ...prev]);
+    toast.success(editing ? `Updated ${payload.ref}` : `Created ${payload.ref}`);
+    setCreateOpen(false);
+    reset();
+  };
+
+  const remove = () => {
+    if (!deleteTarget) return;
+    setOrders((prev) => prev.filter((order) => order.id !== deleteTarget.id));
+    if (open === deleteTarget.id) setOpen(null);
+    toast.success(`Deleted ${deleteTarget.ref}`);
+    setDeleteTarget(null);
+  };
+
   return (
     <>
       <PageHeader
         title="Outbound orders"
         description="Pick, pack, dispatch and track shipments to customers."
         actions={
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <Dialog open={createOpen} onOpenChange={(state) => { setCreateOpen(state); if (!state) reset(); }}>
             <DialogTrigger asChild>
-              <Button size="sm" className="bg-gradient-primary text-primary-foreground"><Plus className="mr-1.5 h-4 w-4" /> New order</Button>
+              <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={openCreate}><Plus className="mr-1.5 h-4 w-4" /> New order</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create outbound order</DialogTitle>
-                <DialogDescription>Send goods to a customer.</DialogDescription>
+                <DialogTitle>{editing ? "Edit outbound order" : "Create outbound order"}</DialogTitle>
+                <DialogDescription>{editing ? "Update customer, routing, and fulfillment state." : "Send goods to a customer."}</DialogDescription>
               </DialogHeader>
-              <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); toast.success("Order created"); setCreateOpen(false); }}>
+              <form className="grid gap-3" onSubmit={submit}>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5"><Label>Customer</Label><Input required placeholder="Lyra Retail" /></div>
-                  <div className="space-y-1.5"><Label>City</Label><Input required placeholder="Mumbai" /></div>
+                  <div className="space-y-1.5"><Label>Customer</Label><Input required value={form.customer} onChange={(e) => setForm((prev) => ({ ...prev, customer: e.target.value }))} placeholder="Lyra Retail" /></div>
+                  <div className="space-y-1.5"><Label>City</Label><Input required value={form.city} onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))} placeholder="Mumbai" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5"><Label>Warehouse</Label>
-                    <Select defaultValue={warehouses[0].id}><SelectTrigger><SelectValue /></SelectTrigger>
+                    <Select value={form.warehouseId} onValueChange={(value) => setForm((prev) => ({ ...prev, warehouseId: value }))}><SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.code}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5"><Label>Priority</Label>
-                    <Select defaultValue="normal"><SelectTrigger><SelectValue /></SelectTrigger>
+                    <Select value={form.priority} onValueChange={(value) => setForm((prev) => ({ ...prev, priority: value as OrderRow["priority"] }))}><SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {["low","normal","high","urgent"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                       </SelectContent>
@@ -89,13 +181,20 @@ export default function Outbound() {
                   </div>
                 </div>
                 <div className="space-y-1.5"><Label>Primary product</Label>
-                  <Select defaultValue={products[0].id}><SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select value={form.productId} onValueChange={(value) => setForm((prev) => ({ ...prev, productId: value }))}><SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{products.slice(0, 30).map((p) => <SelectItem key={p.id} value={p.id}>{p.sku} — {p.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1.5"><Label>Status</Label>
+                  <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value as OrderRow["status"] }))}><SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(["new", "approved", "picking", "packed", "dispatched", "delivered", "cancelled"] as OrderRow["status"][]).map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">Create order</Button>
+                  <Button type="button" variant="outline" onClick={() => { setCreateOpen(false); reset(); }}>Cancel</Button>
+                  <Button type="submit" className="bg-gradient-primary text-primary-foreground">{editing ? "Save order" : "Create order"}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -142,7 +241,12 @@ export default function Outbound() {
                     <TableCell className="text-right font-medium">{formatCurrency(o.total)}</TableCell>
                     <TableCell><StatusBadge status={o.priority} /></TableCell>
                     <TableCell><StatusBadge status={o.status} /></TableCell>
-                    <TableCell><Button size="sm" variant="ghost" onClick={() => setOpen(o.id)}><Eye className="h-4 w-4" /></Button></TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => setOpen(o.id)}><Eye className="h-4 w-4" /></Button>
+                        <EntityActionMenu onEdit={() => openEdit(o)} onDelete={() => setDeleteTarget(o)} editLabel="Edit order" deleteLabel="Delete order" />
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (
@@ -232,6 +336,15 @@ export default function Outbound() {
           )}
         </SheetContent>
       </Sheet>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(state) => !state && setDeleteTarget(null)}
+        title="Delete outbound order?"
+        description={deleteTarget ? `This removes ${deleteTarget.ref} from the outbound queue in this demo.` : ""}
+        confirmLabel="Delete order"
+        onConfirm={remove}
+      />
     </>
   );
 }
