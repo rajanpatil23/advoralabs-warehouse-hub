@@ -1,9 +1,10 @@
 import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Package, Boxes, Warehouse, ArrowDownToLine, ArrowUpFromLine,
-  ArrowLeftRight, Truck, BarChart3, Bell, Users, ScrollText, Settings, Sparkles,
+  ArrowLeftRight, Truck, BarChart3, Bell, Users, ScrollText, Settings,
 } from "lucide-react";
 import { useAuth, Permission } from "@/contexts/AuthContext";
+import { Logo } from "@/components/Logo";
 
 type Item = { to: string; label: string; icon: typeof LayoutDashboard; section?: string; perm: Permission };
 
