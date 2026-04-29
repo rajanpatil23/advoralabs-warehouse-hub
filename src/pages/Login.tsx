@@ -3,15 +3,15 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, ArrowRight, ShieldCheck, Activity, Boxes } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { Sparkles, ArrowRight, ShieldCheck, Activity, Boxes, Copy } from "lucide-react";
+import { useAuth, DEMO_ACCOUNTS, Role } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export default function Login() {
-  const { login, loginDemo } = useAuth();
+  const { login } = useAuth();
   const nav = useNavigate();
-  const [email, setEmail] = useState("operator@connecttly.io");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState("admin@connecttly.io");
+  const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -25,15 +25,17 @@ export default function Login() {
       await login(email, password);
       toast.success("Welcome back");
       nav("/app");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const demo = () => {
-    loginDemo("Admin");
-    toast.success("Signed in as demo admin");
-    nav("/app");
+  const useAccount = (acc: { email: string; password: string; role: Role }) => {
+    setEmail(acc.email);
+    setPassword(acc.password);
+    toast.message(`Loaded ${acc.role} credentials`, { description: "Click Sign in to continue" });
   };
 
   return (
@@ -75,16 +77,31 @@ export default function Login() {
 
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">or</span>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Demo accounts</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <Button variant="outline" className="w-full" onClick={demo}>
-            Continue with demo access
-          </Button>
+          <div className="space-y-1.5">
+            {DEMO_ACCOUNTS.map((acc) => (
+              <button
+                type="button"
+                key={acc.email}
+                onClick={() => useAccount(acc)}
+                className="w-full flex items-center justify-between rounded-lg border border-border bg-surface-elevated/50 px-3 py-2 text-left hover:bg-muted/60 transition-colors focus-ring"
+              >
+                <div className="min-w-0">
+                  <div className="text-xs font-medium">{acc.role}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono truncate">
+                    {acc.email} · {acc.password}
+                  </div>
+                </div>
+                <Copy className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-2" />
+              </button>
+            ))}
+          </div>
 
-          <p className="mt-6 text-xs text-muted-foreground text-center">
-            Demo credentials are pre-filled. Any email/password works.
+          <p className="mt-4 text-[11px] text-muted-foreground text-center">
+            Click any role above to autofill credentials. These are demo-only.
           </p>
         </div>
       </div>
@@ -115,7 +132,7 @@ export default function Login() {
             {[
               { icon: Boxes, t: "Unified SKU catalog", d: "Track 100+ products with batch & expiry awareness." },
               { icon: Activity, t: "Live stock telemetry", d: "Inbound, outbound and transfer events in real time." },
-              { icon: ShieldCheck, t: "Role-aware controls", d: "Admins, managers and operators — each see what matters." },
+              { icon: ShieldCheck, t: "Role-aware controls", d: "Admin, Manager, Inventory, Dispatch & Viewer roles." },
             ].map((f) => (
               <div key={f.t} className="flex items-start gap-3 rounded-lg border border-border bg-card/60 p-3">
                 <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
