@@ -3,9 +3,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, ShieldCheck, Activity, Boxes, Copy } from "lucide-react";
+import { ArrowRight, ShieldCheck, Activity, Boxes } from "lucide-react";
 import { useAuth, DEMO_ACCOUNTS, Role } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -76,31 +77,28 @@ export default function Login() {
 
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Demo accounts</span>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Demo access</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <div className="space-y-1.5">
-            {DEMO_ACCOUNTS.map((acc) => (
-              <button
-                type="button"
-                key={acc.email}
-                onClick={() => useAccount(acc)}
-                className="w-full flex items-center justify-between rounded-lg border border-border bg-surface-elevated/50 px-3 py-2 text-left hover:bg-muted/60 transition-colors focus-ring"
-              >
-                <div className="min-w-0">
-                  <div className="text-xs font-medium">{acc.role}</div>
-                  <div className="text-[11px] text-muted-foreground font-mono truncate">
-                    {acc.email} · {acc.password}
-                  </div>
-                </div>
-                <Copy className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-2" />
-              </button>
-            ))}
-          </div>
+          <Select onValueChange={(role) => {
+            const acc = DEMO_ACCOUNTS.find((a) => a.role === role);
+            if (acc) useAccount(acc);
+          }}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a demo role to autofill…" />
+            </SelectTrigger>
+            <SelectContent>
+              {DEMO_ACCOUNTS.map((acc) => (
+                <SelectItem key={acc.email} value={acc.role}>
+                  {acc.role}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <p className="mt-4 text-[11px] text-muted-foreground text-center">
-            Click any role above to autofill credentials. These are demo-only.
+            Choose a role to autofill credentials. Demo-only access.
           </p>
         </div>
       </div>
