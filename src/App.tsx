@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/Login";
+import RoleDashboard from "./pages/RoleDashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import AppLayout from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
@@ -41,7 +42,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
 
               <Route path="/app" element={<AppLayout />}>
-                <Route index element={<Dashboard />} />
+                <Route index element={<RoleDashboard />} />
                 <Route path="products" element={<Products />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="warehouses" element={<Warehouses />} />
