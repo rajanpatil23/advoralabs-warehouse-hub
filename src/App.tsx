@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { TourProvider } from "@/components/tour/TourContext";
+import { TourOverlay } from "@/components/tour/TourOverlay";
 
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -36,6 +38,8 @@ const App = () => (
           <Toaster />
           <Sonner richColors closeButton position="top-right" />
           <BrowserRouter>
+            <TourProvider>
+            <TourOverlay />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
@@ -59,6 +63,7 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </TourProvider>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
