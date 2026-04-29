@@ -31,9 +31,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="flex h-16 items-center gap-2.5 px-5 border-b border-sidebar-border">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-primary shadow-glow">
-          <Sparkles className="h-5 w-5 text-primary-foreground" />
-        </div>
+        <Logo className="h-9 w-9" />
         <div className="leading-tight">
           <div className="text-sm font-semibold text-sidebar-foreground">Advora Labs</div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">WMS Console</div>
