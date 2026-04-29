@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { Topbar } from "./Topbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { RouteGuard } from "@/components/RouteGuard";
 
 export default function AppLayout() {
   const { user } = useAuth();
@@ -27,7 +28,9 @@ export default function AppLayout() {
         <Topbar onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[1400px] p-4 md:p-6 lg:p-8 animate-fade-in">
-            <Outlet />
+            <RouteGuard>
+              <Outlet />
+            </RouteGuard>
           </div>
         </main>
       </div>
