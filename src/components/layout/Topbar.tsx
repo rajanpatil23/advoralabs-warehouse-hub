@@ -1,5 +1,6 @@
 import { useTheme } from "next-themes";
-import { Bell, Moon, Search, Sun, LogOut, Menu, ChevronRight } from "lucide-react";
+import { Bell, Moon, Search, Sun, LogOut, Menu, ChevronRight, Sparkles } from "lucide-react";
+import { useTour } from "@/components/tour/TourContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,6 +32,7 @@ const titleMap: Record<string, string> = {
 export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { restart } = useTour();
   const navigate = useNavigate();
   const location = useLocation();
   const unread = alerts.filter((a) => !a.read).length;
@@ -57,7 +59,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
 
       <div className="flex-1" />
 
-      <div className="relative hidden sm:block w-64 lg:w-80">
+      <div data-tour="topbar-search" className="relative hidden sm:block w-64 lg:w-80">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search SKUs, orders, suppliers…"
@@ -69,6 +71,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
       </div>
 
       <Button
+        data-tour="topbar-theme"
         variant="ghost"
         size="icon"
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -79,7 +82,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+          <Button data-tour="topbar-notifications" variant="ghost" size="icon" className="relative" aria-label="Notifications">
             <Bell className="h-4.5 w-4.5" />
             {unread > 0 && (
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
@@ -123,7 +126,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2 rounded-lg border border-border bg-surface-elevated px-2 py-1 text-left hover:bg-muted/60 focus-ring">
+          <button data-tour="topbar-user" className="flex items-center gap-2 rounded-lg border border-border bg-surface-elevated px-2 py-1 text-left hover:bg-muted/60 focus-ring">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-primary text-xs font-semibold text-primary-foreground">
               {user?.initials ?? "U"}
             </div>
@@ -141,6 +144,9 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => navigate("/app/settings")}>Account settings</DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate("/app/users")}>Team & roles</DropdownMenuItem>
+          <DropdownMenuItem onClick={restart}>
+            <Sparkles className="mr-2 h-4 w-4" /> Restart guided tour
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => { logout(); navigate("/login"); }}

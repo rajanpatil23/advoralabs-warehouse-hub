@@ -70,7 +70,7 @@ export default function Login() {
               </div>
               <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-            <Button type="submit" className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-glow" disabled={loading}>
+            <Button data-tour="sign-in" type="submit" className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-glow" disabled={loading}>
               {loading ? "Signing in…" : <>Sign in <ArrowRight className="ml-1 h-4 w-4" /></>}
             </Button>
           </form>
@@ -78,6 +78,7 @@ export default function Login() {
           <div className="mt-5 flex justify-center">
             <button
               type="button"
+              data-tour="demo-toggle"
               onClick={() => setDemoOpen((v) => !v)}
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               aria-expanded={demoOpen}
@@ -89,7 +90,7 @@ export default function Login() {
           </div>
 
           {demoOpen && (
-            <div className="mt-3 rounded-xl border border-border bg-surface-elevated/50 p-4 animate-fade-in">
+            <div data-tour="demo-accounts" className="mt-3 rounded-xl border border-border bg-surface-elevated/50 p-4 animate-fade-in">
               <p className="text-xs text-muted-foreground">
                 Click any role to autofill credentials. For evaluation only.
               </p>
