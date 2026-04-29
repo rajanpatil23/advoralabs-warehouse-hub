@@ -3,10 +3,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, ShieldCheck, Activity, Boxes } from "lucide-react";
+import { ArrowRight, ShieldCheck, Activity, Boxes, ChevronDown } from "lucide-react";
 import { useAuth, DEMO_ACCOUNTS, Role } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -15,6 +14,7 @@ export default function Login() {
   const [email, setEmail] = useState("admin@advoralabs.io");
   const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
