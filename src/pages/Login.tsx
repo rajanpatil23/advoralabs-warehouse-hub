@@ -75,31 +75,39 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Demo access</span>
-            <div className="h-px flex-1 bg-border" />
+          <div className="mt-5 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setDemoOpen((v) => !v)}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              aria-expanded={demoOpen}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span>Evaluating Advora? Try a demo account</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${demoOpen ? "rotate-180" : ""}`} />
+            </button>
           </div>
 
-          <Select onValueChange={(role) => {
-            const acc = DEMO_ACCOUNTS.find((a) => a.role === role);
-            if (acc) useAccount(acc);
-          }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a demo role to autofill…" />
-            </SelectTrigger>
-            <SelectContent>
-              {DEMO_ACCOUNTS.map((acc) => (
-                <SelectItem key={acc.email} value={acc.role}>
-                  {acc.role}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <p className="mt-4 text-[11px] text-muted-foreground text-center">
-            Choose a role to autofill credentials. Demo-only access.
-          </p>
+          {demoOpen && (
+            <div className="mt-3 rounded-xl border border-border bg-surface-elevated/50 p-4 animate-fade-in">
+              <p className="text-xs text-muted-foreground">
+                Click any role to autofill credentials. For evaluation only.
+              </p>
+              <div className="mt-3 divide-y divide-border">
+                {DEMO_ACCOUNTS.map((acc) => (
+                  <button
+                    type="button"
+                    key={acc.email}
+                    onClick={() => useAccount(acc)}
+                    className="w-full flex items-center justify-between gap-3 py-2.5 text-left hover:opacity-80 transition-opacity"
+                  >
+                    <span className="text-sm font-semibold">{acc.role}</span>
+                    <span className="text-xs text-muted-foreground font-mono truncate">{acc.email}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
