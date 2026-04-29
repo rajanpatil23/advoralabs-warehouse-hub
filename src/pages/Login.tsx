@@ -3,14 +3,15 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, ArrowRight, ShieldCheck, Activity, Boxes, Copy } from "lucide-react";
+import { ArrowRight, ShieldCheck, Activity, Boxes, Copy } from "lucide-react";
 import { useAuth, DEMO_ACCOUNTS, Role } from "@/contexts/AuthContext";
+import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 
 export default function Login() {
   const { login } = useAuth();
   const nav = useNavigate();
-  const [email, setEmail] = useState("admin@connecttly.io");
+  const [email, setEmail] = useState("admin@advoralabs.io");
   const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
 
@@ -44,11 +45,9 @@ export default function Login() {
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16">
         <div className="mx-auto w-full max-w-sm">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-primary shadow-glow">
-              <Sparkles className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <Logo className="h-9 w-9" />
             <div className="leading-tight">
-              <div className="text-sm font-semibold">Connecttly</div>
+              <div className="text-sm font-semibold">Advora Labs</div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">WMS Console</div>
             </div>
           </Link>

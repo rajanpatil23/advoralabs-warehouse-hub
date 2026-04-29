@@ -14,12 +14,12 @@ import { EntityActionMenu } from "@/components/EntityActionMenu";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const initialUsers = [
-  { name: "Aarav Mehta", email: "aarav@connecttly.io", role: "Admin", warehouse: "All", status: "active", last: "2m ago" },
-  { name: "Priya Sharma", email: "priya@connecttly.io", role: "Warehouse Manager", warehouse: "MUM-01", status: "active", last: "12m ago" },
-  { name: "Rohan Iyer", email: "rohan@connecttly.io", role: "Inventory Staff", warehouse: "BLR-02", status: "active", last: "1h ago" },
-  { name: "Neha Kapoor", email: "neha@connecttly.io", role: "Dispatch Operator", warehouse: "DEL-03", status: "active", last: "3h ago" },
-  { name: "Vikram Rao", email: "vikram@connecttly.io", role: "Viewer", warehouse: "DXB-04", status: "inactive", last: "2d ago" },
-  { name: "Sara Khan", email: "sara@connecttly.io", role: "Inventory Staff", warehouse: "MUM-01", status: "active", last: "5h ago" },
+  { name: "Aarav Mehta", email: "aarav@advoralabs.io", role: "Admin", warehouse: "All", status: "active", last: "2m ago" },
+  { name: "Priya Sharma", email: "priya@advoralabs.io", role: "Warehouse Manager", warehouse: "MUM-01", status: "active", last: "12m ago" },
+  { name: "Rohan Iyer", email: "rohan@advoralabs.io", role: "Inventory Staff", warehouse: "BLR-02", status: "active", last: "1h ago" },
+  { name: "Neha Kapoor", email: "neha@advoralabs.io", role: "Dispatch Operator", warehouse: "DEL-03", status: "active", last: "3h ago" },
+  { name: "Vikram Rao", email: "vikram@advoralabs.io", role: "Viewer", warehouse: "DXB-04", status: "inactive", last: "2d ago" },
+  { name: "Sara Khan", email: "sara@advoralabs.io", role: "Inventory Staff", warehouse: "MUM-01", status: "active", last: "5h ago" },
 ];
 
 const roleClr: Record<string, string> = {
@@ -122,7 +122,7 @@ export default function Users() {
               <form className="grid gap-3" onSubmit={submit}>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5"><Label>Full name</Label><Input required value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Asha Patel" /></div>
-                  <div className="space-y-1.5"><Label>Email</Label><Input required type="email" value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="asha@connecttly.io" /></div>
+                  <div className="space-y-1.5"><Label>Email</Label><Input required type="email" value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="asha@advoralabs.io" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5"><Label>Role</Label>

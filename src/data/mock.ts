@@ -1,4 +1,4 @@
-// Realistic mock data for Connecttly WMS.
+// Realistic mock data for Advora Labs WMS.
 // Deterministic seed so dashboard numbers are stable across renders.
 
 export type Warehouse = { id: string; code: string; name: string; city: string; country: string; capacity: number; used: number };

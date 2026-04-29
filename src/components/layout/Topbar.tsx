@@ -34,7 +34,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();
   const unread = alerts.filter((a) => !a.read).length;
-  const title = titleMap[location.pathname] || "Connecttly";
+  const title = titleMap[location.pathname] || "Advora Labs";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md md:px-6">
@@ -50,7 +50,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
       </Button>
 
       <div className="flex items-center gap-1.5 text-sm">
-        <span className="hidden sm:inline text-muted-foreground">Connecttly</span>
+        <span className="hidden sm:inline text-muted-foreground">Advora Labs</span>
         <ChevronRight className="hidden sm:inline h-3.5 w-3.5 text-muted-foreground" />
         <span className="font-medium">{title}</span>
       </div>
