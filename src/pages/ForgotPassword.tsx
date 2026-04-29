@@ -25,7 +25,7 @@ export default function ForgotPassword() {
             <Sparkles className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="leading-tight">
-            <div className="text-sm font-semibold">Connecttly</div>
+            <div className="text-sm font-semibold">Advora Labs</div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">WMS Console</div>
           </div>
         </Link>

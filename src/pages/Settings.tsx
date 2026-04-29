@@ -23,9 +23,9 @@ export default function Settings() {
         <TabsContent value="company" className="mt-4">
           <div className="surface-card p-6 max-w-2xl space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5"><Label>Company name</Label><Input defaultValue="Connecttly Logistics Pvt. Ltd." /></div>
-              <div className="space-y-1.5"><Label>Workspace URL</Label><Input defaultValue="connecttly.lovable.app" /></div>
-              <div className="space-y-1.5"><Label>Primary contact</Label><Input defaultValue="ops@connecttly.io" /></div>
+              <div className="space-y-1.5"><Label>Company name</Label><Input defaultValue="Advora Labs Pvt. Ltd." /></div>
+              <div className="space-y-1.5"><Label>Workspace URL</Label><Input defaultValue="advoralabs.lovable.app" /></div>
+              <div className="space-y-1.5"><Label>Primary contact</Label><Input defaultValue="ops@advoralabs.io" /></div>
               <div className="space-y-1.5"><Label>Currency</Label><Input defaultValue="INR" /></div>
             </div>
             <Button onClick={() => toast.success("Saved")} className="bg-gradient-primary text-primary-foreground">Save changes</Button>

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 export default function Login() {
   const { login } = useAuth();
   const nav = useNavigate();
-  const [email, setEmail] = useState("admin@connecttly.io");
+  const [email, setEmail] = useState("admin@advoralabs.io");
   const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
 
@@ -48,7 +48,7 @@ export default function Login() {
               <Sparkles className="h-5 w-5 text-primary-foreground" />
             </div>
             <div className="leading-tight">
-              <div className="text-sm font-semibold">Connecttly</div>
+              <div className="text-sm font-semibold">Advora Labs</div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">WMS Console</div>
             </div>
           </Link>

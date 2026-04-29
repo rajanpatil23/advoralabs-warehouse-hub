@@ -34,7 +34,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <Sparkles className="h-5 w-5 text-primary-foreground" />
         </div>
         <div className="leading-tight">
-          <div className="text-sm font-semibold text-sidebar-foreground">Connecttly</div>
+          <div className="text-sm font-semibold text-sidebar-foreground">Advora Labs</div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">WMS Console</div>
         </div>
       </div>

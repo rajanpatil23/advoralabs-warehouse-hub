@@ -102,15 +102,15 @@ const ROLE_PERMS: Record<Role, Permission[]> = {
 
 // Hardcoded demo credentials (portfolio / showcase).
 export const DEMO_ACCOUNTS: { email: string; password: string; name: string; role: Role }[] = [
-  { email: "admin@connecttly.io",    password: "admin123",    name: "Aarav Mehta",    role: "Admin" },
-  { email: "manager@connecttly.io",  password: "manager123",  name: "Priya Sharma",   role: "Warehouse Manager" },
-  { email: "inventory@connecttly.io",password: "inventory123",name: "Rohit Verma",    role: "Inventory Staff" },
-  { email: "dispatch@connecttly.io", password: "dispatch123", name: "Neha Kapoor",    role: "Dispatch Operator" },
-  { email: "viewer@connecttly.io",   password: "viewer123",   name: "Sam Iyer",       role: "Viewer" },
+  { email: "admin@advoralabs.io",    password: "admin123",    name: "Aarav Mehta",    role: "Admin" },
+  { email: "manager@advoralabs.io",  password: "manager123",  name: "Priya Sharma",   role: "Warehouse Manager" },
+  { email: "inventory@advoralabs.io",password: "inventory123",name: "Rohit Verma",    role: "Inventory Staff" },
+  { email: "dispatch@advoralabs.io", password: "dispatch123", name: "Neha Kapoor",    role: "Dispatch Operator" },
+  { email: "viewer@advoralabs.io",   password: "viewer123",   name: "Sam Iyer",       role: "Viewer" },
 ];
 
 const Ctx = createContext<AuthCtx | null>(null);
-const STORAGE = "connecttly.user";
+const STORAGE = "advoralabs.user";
 
 const initials = (name: string) =>
   name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
