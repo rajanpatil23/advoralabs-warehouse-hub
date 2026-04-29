@@ -29,7 +29,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const visible = items.filter((i) => can(i.perm));
   let lastSection = "";
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+    <aside data-tour="sidebar" className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="flex h-16 items-center gap-2.5 px-5 border-b border-sidebar-border">
         <Logo className="h-9 w-9" />
         <div className="leading-tight">
