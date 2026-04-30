@@ -102,17 +102,64 @@ export function TourOverlay() {
     return { top, left, width: tooltipWidth, transform };
   })();
 
+  const placement = current.placement ?? "bottom";
+
+  // Arrow position relative to tooltip
+  const arrowStyle: React.CSSProperties | null = (() => {
+    if (isCenter || !rect) return null;
+    const base: React.CSSProperties = {
+      position: "absolute",
+      width: 14,
+      height: 14,
+      background: "hsl(var(--card))",
+      borderTop: "1px solid hsl(var(--border))",
+      borderLeft: "1px solid hsl(var(--border))",
+    };
+    if (placement === "bottom") {
+      // tooltip below target -> arrow on top of tooltip
+      return { ...base, top: -8, left: "50%", transform: "translateX(-50%) rotate(45deg)" };
+    }
+    if (placement === "top") {
+      return { ...base, bottom: -8, left: "50%", transform: "translateX(-50%) rotate(225deg)" };
+    }
+    if (placement === "right") {
+      return { ...base, left: -8, top: "50%", transform: "translateY(-50%) rotate(-45deg)" };
+    }
+    if (placement === "left") {
+      return { ...base, right: -8, top: "50%", transform: "translateY(-50%) rotate(135deg)" };
+    }
+    return null;
+  })();
+
   const isLast = stepIndex >= steps.length - 1;
 
   return createPortal(
     <div className="fixed inset-0 z-[100] pointer-events-none">
-      {/* Dim layer */}
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-[2px] pointer-events-auto" onClick={() => stop(false)} />
+      {/* Dim layer — much darker so highlighted element pops */}
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-[2px] pointer-events-auto"
+        onClick={() => stop(false)}
+        style={
+          rect && !isCenter
+            ? {
+                // Cut a transparent hole over the highlighted element
+                clipPath: `polygon(
+                  0 0, 100% 0, 100% 100%, 0 100%, 0 0,
+                  ${rect.left - padding}px ${rect.top - padding}px,
+                  ${rect.left - padding}px ${rect.top + rect.height + padding}px,
+                  ${rect.left + rect.width + padding}px ${rect.top + rect.height + padding}px,
+                  ${rect.left + rect.width + padding}px ${rect.top - padding}px,
+                  ${rect.left - padding}px ${rect.top - padding}px
+                )`,
+              }
+            : undefined
+        }
+      />
 
-      {/* Highlight ring (cuts through overlay visually with ring + bright bg) */}
+      {/* Highlight ring around the target */}
       {rect && !isCenter && (
         <div
-          className="absolute rounded-xl ring-2 ring-primary shadow-[0_0_0_9999px_hsl(var(--background)/0.72)] transition-all duration-300 pointer-events-none"
+          className="absolute rounded-xl ring-4 ring-primary ring-offset-2 ring-offset-background animate-pulse pointer-events-none"
           style={highlightStyle}
         />
       )}
@@ -122,6 +169,8 @@ export function TourOverlay() {
         className="absolute pointer-events-auto rounded-xl border border-border bg-card text-card-foreground shadow-2xl animate-fade-in"
         style={tooltipStyle}
       >
+        {arrowStyle && <div style={arrowStyle} />}
+
         <div className="flex items-start justify-between gap-3 p-4 pb-2">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/15 text-primary">
