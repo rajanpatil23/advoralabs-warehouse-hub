@@ -245,11 +245,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
   // When user logs in mid-tour, jump into post-login phase
   useEffect(() => {
     if (!active) return;
-    const current = steps[stepIndex];
-    if (!current) {
-      // Steps array changed (e.g. after login). Find first post-login step.
+    if (stepIndex >= steps.length || !steps[stepIndex]) {
       const idx = steps.findIndex((s) => s.phase === "post-login");
       if (idx >= 0) setStepIndex(idx);
+      else if (steps.length > 0) setStepIndex(0);
       else setActive(false);
     }
   }, [steps, active, stepIndex]);
