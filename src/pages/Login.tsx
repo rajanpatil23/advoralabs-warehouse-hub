@@ -60,15 +60,6 @@ export default function Login() {
             Welcome back. Manage every shipment, SKU, and bin from one console.
           </p>
 
-          <button
-            type="button"
-            onClick={restartTour}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15 transition-colors"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Start guided tour
-          </button>
-
           <form onSubmit={submit} className="mt-8 space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email">Work email</Label>
