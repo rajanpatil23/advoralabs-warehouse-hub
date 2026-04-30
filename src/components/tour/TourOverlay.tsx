@@ -142,15 +142,11 @@ export function TourOverlay() {
         }
       />
 
-      {/* Glowing highlight ring */}
+      {/* Highlight ring (no glow) */}
       {rect && !isCenter && (
         <div
-          className="absolute rounded-xl pointer-events-none transition-all duration-500"
-          style={{
-            ...highlightStyle,
-            boxShadow:
-              "0 0 0 2px hsl(var(--primary)), 0 0 0 8px hsl(var(--primary) / 0.2), 0 0 60px 12px hsl(var(--primary) / 0.5)",
-          }}
+          className="absolute rounded-xl pointer-events-none transition-all duration-300 border-2 border-primary"
+          style={highlightStyle}
         />
       )}
 
