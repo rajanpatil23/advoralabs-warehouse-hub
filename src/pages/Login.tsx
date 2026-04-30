@@ -3,13 +3,15 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, ShieldCheck, Activity, Boxes, ChevronDown } from "lucide-react";
+import { ArrowRight, ShieldCheck, Activity, Boxes, ChevronDown, Sparkles } from "lucide-react";
 import { useAuth, DEMO_ACCOUNTS, Role } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
+import { useTour } from "@/components/tour/TourContext";
 import { toast } from "sonner";
 
 export default function Login() {
   const { login } = useAuth();
+  const { restart: restartTour } = useTour();
   const nav = useNavigate();
   const [email, setEmail] = useState("admin@advoralabs.io");
   const [password, setPassword] = useState("admin123");
@@ -57,6 +59,15 @@ export default function Login() {
           <p className="mt-1.5 text-sm text-muted-foreground">
             Welcome back. Manage every shipment, SKU, and bin from one console.
           </p>
+
+          <button
+            type="button"
+            onClick={restartTour}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15 transition-colors"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Start guided tour
+          </button>
 
           <form onSubmit={submit} className="mt-8 space-y-4">
             <div className="space-y-1.5">
