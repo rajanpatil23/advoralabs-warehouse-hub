@@ -7,13 +7,12 @@ import { X, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 type Rect = { top: number; left: number; width: number; height: number };
 
 export function TourOverlay() {
-  const { active, current, stepIndex, steps, next, prev, stop } = useTour();
+  const { active, current, stepIndex, steps, next, prev, stop, restart } = useTour();
   const [rect, setRect] = useState<Rect | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
-  // Track target element position
   useLayoutEffect(() => {
     if (!active || !current?.selector) {
       setRect(null);
@@ -26,11 +25,8 @@ export function TourOverlay() {
       const el = document.querySelector(current.selector!) as HTMLElement | null;
       if (!el) {
         attempts++;
-        if (attempts < 30) {
-          raf = window.requestAnimationFrame(measure);
-        } else {
-          setRect(null);
-        }
+        if (attempts < 30) raf = window.requestAnimationFrame(measure);
+        else setRect(null);
         return;
       }
       el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
@@ -51,10 +47,27 @@ export function TourOverlay() {
     };
   }, [active, current]);
 
-  if (!mounted || !active || !current) return null;
+  if (!mounted) return null;
+
+  // Floating "Start guided tour" pill (bottom-right) when tour isn't active
+  if (!active || !current) {
+    return createPortal(
+      <button
+        onClick={restart}
+        className="fixed bottom-5 right-5 z-[90] inline-flex items-center gap-2 rounded-full border border-border bg-card/95 backdrop-blur px-4 py-2.5 text-sm font-medium text-foreground shadow-2xl hover:bg-card transition-all hover:scale-105 group animate-fade-in"
+      >
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary">
+          <Sparkles className="h-3.5 w-3.5" />
+        </span>
+        Start guided tour
+        <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background animate-pulse" />
+      </button>,
+      document.body,
+    );
+  }
 
   const isCenter = !current.selector || current.placement === "center" || !rect;
-  const padding = 8;
+  const padding = 6;
   const highlightStyle: React.CSSProperties | undefined = rect
     ? {
         top: rect.top - padding,
@@ -64,8 +77,8 @@ export function TourOverlay() {
       }
     : undefined;
 
-  // Tooltip placement
-  const tooltipWidth = 360;
+  // Compact tooltip
+  const tooltipWidth = 340;
   const tooltipStyle: React.CSSProperties = (() => {
     if (isCenter || !rect) {
       return {
@@ -76,7 +89,7 @@ export function TourOverlay() {
       };
     }
     const placement = current.placement ?? "bottom";
-    const margin = 16;
+    const margin = 18;
     let top = 0, left = 0;
     if (placement === "bottom") {
       top = rect.top + rect.height + margin;
@@ -91,7 +104,6 @@ export function TourOverlay() {
       top = rect.top + rect.height / 2;
       left = rect.left - tooltipWidth - margin;
     }
-    // clamp to viewport
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     left = Math.max(12, Math.min(left, vw - tooltipWidth - 12));
@@ -103,46 +115,17 @@ export function TourOverlay() {
   })();
 
   const placement = current.placement ?? "bottom";
-
-  // Arrow position relative to tooltip
-  const arrowStyle: React.CSSProperties | null = (() => {
-    if (isCenter || !rect) return null;
-    const base: React.CSSProperties = {
-      position: "absolute",
-      width: 14,
-      height: 14,
-      background: "hsl(var(--card))",
-      borderTop: "1px solid hsl(var(--border))",
-      borderLeft: "1px solid hsl(var(--border))",
-    };
-    if (placement === "bottom") {
-      // tooltip below target -> arrow on top of tooltip
-      return { ...base, top: -8, left: "50%", transform: "translateX(-50%) rotate(45deg)" };
-    }
-    if (placement === "top") {
-      return { ...base, bottom: -8, left: "50%", transform: "translateX(-50%) rotate(225deg)" };
-    }
-    if (placement === "right") {
-      return { ...base, left: -8, top: "50%", transform: "translateY(-50%) rotate(-45deg)" };
-    }
-    if (placement === "left") {
-      return { ...base, right: -8, top: "50%", transform: "translateY(-50%) rotate(135deg)" };
-    }
-    return null;
-  })();
-
   const isLast = stepIndex >= steps.length - 1;
 
   return createPortal(
     <div className="fixed inset-0 z-[100] pointer-events-none">
-      {/* Dim layer — much darker so highlighted element pops */}
+      {/* Dim layer with cutout for highlighted element */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-[2px] pointer-events-auto"
+        className="absolute inset-0 bg-black/75 pointer-events-auto"
         onClick={() => stop(false)}
         style={
           rect && !isCenter
             ? {
-                // Cut a transparent hole over the highlighted element
                 clipPath: `polygon(
                   0 0, 100% 0, 100% 100%, 0 100%, 0 0,
                   ${rect.left - padding}px ${rect.top - padding}px,
@@ -156,31 +139,33 @@ export function TourOverlay() {
         }
       />
 
-      {/* Highlight ring around the target */}
+      {/* Glowing highlight ring */}
       {rect && !isCenter && (
         <div
-          className="absolute rounded-xl ring-4 ring-primary ring-offset-2 ring-offset-background animate-pulse pointer-events-none"
-          style={highlightStyle}
+          className="absolute rounded-lg pointer-events-none transition-all duration-300"
+          style={{
+            ...highlightStyle,
+            boxShadow:
+              "0 0 0 2px hsl(var(--primary)), 0 0 0 6px hsl(var(--primary) / 0.25), 0 0 40px 8px hsl(var(--primary) / 0.45)",
+          }}
         />
       )}
 
-      {/* Tooltip card */}
+      {/* Compact tooltip card */}
       <div
         className="absolute pointer-events-auto rounded-xl border border-border bg-card text-card-foreground shadow-2xl animate-fade-in"
         style={tooltipStyle}
       >
-        {arrowStyle && <div style={arrowStyle} />}
-
-        <div className="flex items-start justify-between gap-3 p-4 pb-2">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/15 text-primary">
+        <div className="flex items-start justify-between gap-3 p-4 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
               <Sparkles className="h-4 w-4" />
             </div>
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Step {stepIndex + 1} of {steps.length}
               </div>
-              <div className="text-sm font-semibold leading-tight">{current.title}</div>
+              <div className="text-base font-semibold leading-tight">{current.title}</div>
             </div>
           </div>
           <button
@@ -196,18 +181,20 @@ export function TourOverlay() {
           {current.body}
         </div>
 
-        {/* progress bar */}
-        <div className="px-4">
-          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+        {/* Dotted progress (matches reference) */}
+        <div className="px-4 pb-3 flex items-center gap-1.5">
+          {steps.map((_, i) => (
             <div
-              className="h-full bg-gradient-to-r from-primary to-primary-glow transition-all duration-300"
-              style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }}
+              key={i}
+              className={`h-1 flex-1 rounded-full transition-colors ${
+                i <= stepIndex ? "bg-primary" : "bg-muted"
+              }`}
             />
-          </div>
+          ))}
         </div>
 
-        <div className="flex items-center justify-between gap-2 p-3">
-          <Button variant="ghost" size="sm" onClick={() => stop(true)}>
+        <div className="flex items-center justify-between gap-2 px-3 pb-3">
+          <Button variant="ghost" size="sm" onClick={() => stop(true)} className="text-muted-foreground">
             Skip tour
           </Button>
           <div className="flex items-center gap-2">
@@ -217,10 +204,10 @@ export function TourOverlay() {
               onClick={prev}
               disabled={stepIndex === 0}
             >
-              <ArrowLeft className="h-3.5 w-3.5" />
+              <ArrowLeft className="h-3.5 w-3.5 mr-1" />
               Back
             </Button>
-            <Button size="sm" onClick={next} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
+            <Button size="sm" onClick={next} className="bg-primary text-primary-foreground hover:bg-primary/90">
               {isLast ? "Finish" : (<>Next <ArrowRight className="h-3.5 w-3.5 ml-1" /></>)}
             </Button>
           </div>
