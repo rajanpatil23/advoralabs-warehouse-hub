@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useTour } from "./TourContext";
+import { useTour } from "@/components/tour/TourContext";
 import { Button } from "@/components/ui/button";
 import { X, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 
