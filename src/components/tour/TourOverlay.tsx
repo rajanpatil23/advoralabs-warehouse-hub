@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTour } from "@/components/tour/TourContext";
 import { Button } from "@/components/ui/button";
-import { X, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
+import { X, ArrowLeft, ArrowRight, Sparkles, Compass } from "lucide-react";
 
 type Rect = { top: number; left: number; width: number; height: number };
 
@@ -49,25 +49,25 @@ export function TourOverlay() {
 
   if (!mounted) return null;
 
-  // Floating "Start guided tour" pill (bottom-right) when tour isn't active
+  // Floating launcher when tour is closed
   if (!active || !current) {
     return createPortal(
       <button
         onClick={restart}
-        className="fixed bottom-5 right-5 z-[90] inline-flex items-center gap-2 rounded-full border border-border bg-card/95 backdrop-blur px-4 py-2.5 text-sm font-medium text-foreground shadow-2xl hover:bg-card transition-all hover:scale-105 group animate-fade-in"
+        className="group fixed bottom-6 right-6 z-[90] flex items-center gap-2.5 rounded-2xl bg-gradient-to-br from-primary to-primary-glow px-4 py-3 text-sm font-semibold text-primary-foreground shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:-translate-y-0.5 animate-fade-in"
       >
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary">
-          <Sparkles className="h-3.5 w-3.5" />
+        <span className="relative flex h-7 w-7 items-center justify-center rounded-xl bg-white/20">
+          <Compass className="h-4 w-4" />
+          <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-white ring-2 ring-primary animate-pulse" />
         </span>
-        Start guided tour
-        <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background animate-pulse" />
+        Take a tour
       </button>,
       document.body,
     );
   }
 
   const isCenter = !current.selector || current.placement === "center" || !rect;
-  const padding = 6;
+  const padding = 8;
   const highlightStyle: React.CSSProperties | undefined = rect
     ? {
         top: rect.top - padding,
@@ -77,51 +77,54 @@ export function TourOverlay() {
       }
     : undefined;
 
-  // Compact tooltip
-  const tooltipWidth = 340;
-  const tooltipStyle: React.CSSProperties = (() => {
-    if (isCenter || !rect) {
-      return {
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        width: tooltipWidth,
-      };
-    }
-    const placement = current.placement ?? "bottom";
-    const margin = 18;
-    let top = 0, left = 0;
-    if (placement === "bottom") {
-      top = rect.top + rect.height + margin;
-      left = rect.left + rect.width / 2 - tooltipWidth / 2;
-    } else if (placement === "top") {
-      top = rect.top - margin;
-      left = rect.left + rect.width / 2 - tooltipWidth / 2;
-    } else if (placement === "right") {
-      top = rect.top + rect.height / 2;
-      left = rect.left + rect.width + margin;
-    } else if (placement === "left") {
-      top = rect.top + rect.height / 2;
-      left = rect.left - tooltipWidth - margin;
-    }
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    left = Math.max(12, Math.min(left, vw - tooltipWidth - 12));
-    top = Math.max(12, Math.min(top, vh - 220));
-    const transform = placement === "top" ? "translateY(-100%)"
-      : placement === "left" || placement === "right" ? "translateY(-50%)"
-      : undefined;
-    return { top, left, width: tooltipWidth, transform };
+  // Card layout: side-docked panel (right edge) for highlight steps, centered for intro/outro
+  const cardWidth = 380;
+  const dockMargin = 24;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 720;
+
+  // Decide dock side: opposite of highlighted element to avoid covering it
+  const dockSide: "left" | "right" | "center" = (() => {
+    if (isCenter || !rect) return "center";
+    const targetCenterX = rect.left + rect.width / 2;
+    return targetCenterX < vw / 2 ? "right" : "left";
   })();
 
-  const placement = current.placement ?? "bottom";
+  const cardStyle: React.CSSProperties = (() => {
+    if (dockSide === "center") {
+      return { top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: cardWidth };
+    }
+    const top = Math.max(24, Math.min(vh / 2 - 180, vh - 380));
+    if (dockSide === "right") {
+      return { top, right: dockMargin, width: cardWidth };
+    }
+    return { top, left: dockMargin, width: cardWidth };
+  })();
+
+  // Connector line from card to highlighted element
+  const connector: { x1: number; y1: number; x2: number; y2: number } | null = (() => {
+    if (isCenter || !rect) return null;
+    const cardTop = Math.max(24, Math.min(vh / 2 - 180, vh - 380));
+    const cardCenterY = cardTop + 180;
+    const targetCenterX = rect.left + rect.width / 2;
+    const targetCenterY = rect.top + rect.height / 2;
+    if (dockSide === "right") {
+      const cardLeftEdge = vw - dockMargin - cardWidth;
+      return { x1: cardLeftEdge, y1: cardCenterY, x2: rect.left + rect.width + padding, y2: targetCenterY };
+    } else {
+      const cardRightEdge = dockMargin + cardWidth;
+      return { x1: cardRightEdge, y1: cardCenterY, x2: rect.left - padding, y2: targetCenterY };
+    }
+  })();
+
   const isLast = stepIndex >= steps.length - 1;
+  const progress = ((stepIndex + 1) / steps.length) * 100;
 
   return createPortal(
     <div className="fixed inset-0 z-[100] pointer-events-none">
       {/* Dim layer with cutout for highlighted element */}
       <div
-        className="absolute inset-0 bg-black/75 pointer-events-auto"
+        className="absolute inset-0 bg-black/75 backdrop-blur-[1px] pointer-events-auto animate-fade-in"
         onClick={() => stop(false)}
         style={
           rect && !isCenter
@@ -142,74 +145,111 @@ export function TourOverlay() {
       {/* Glowing highlight ring */}
       {rect && !isCenter && (
         <div
-          className="absolute rounded-lg pointer-events-none transition-all duration-300"
+          className="absolute rounded-xl pointer-events-none transition-all duration-500"
           style={{
             ...highlightStyle,
             boxShadow:
-              "0 0 0 2px hsl(var(--primary)), 0 0 0 6px hsl(var(--primary) / 0.25), 0 0 40px 8px hsl(var(--primary) / 0.45)",
+              "0 0 0 2px hsl(var(--primary)), 0 0 0 8px hsl(var(--primary) / 0.2), 0 0 60px 12px hsl(var(--primary) / 0.5)",
           }}
         />
       )}
 
-      {/* Compact tooltip card */}
+      {/* SVG connector line from card to target */}
+      {connector && (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: "visible" }}>
+          <defs>
+            <linearGradient id="tour-connector" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+            </linearGradient>
+          </defs>
+          <path
+            d={`M ${connector.x1} ${connector.y1} Q ${(connector.x1 + connector.x2) / 2} ${connector.y1}, ${connector.x2} ${connector.y2}`}
+            stroke="url(#tour-connector)"
+            strokeWidth="2"
+            strokeDasharray="6 4"
+            fill="none"
+            className="animate-fade-in"
+          />
+          <circle cx={connector.x2} cy={connector.y2} r="5" fill="hsl(var(--primary))" className="animate-pulse" />
+        </svg>
+      )}
+
+      {/* Side-docked card with numbered badge + gradient header */}
       <div
-        className="absolute pointer-events-auto rounded-xl border border-border bg-card text-card-foreground shadow-2xl animate-fade-in"
-        style={tooltipStyle}
+        key={current.id}
+        className="absolute pointer-events-auto rounded-2xl border border-border bg-card text-card-foreground shadow-2xl overflow-hidden animate-scale-in"
+        style={cardStyle}
       >
-        <div className="flex items-start justify-between gap-3 p-4 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Step {stepIndex + 1} of {steps.length}
+        {/* Gradient header strip */}
+        <div className="relative h-1.5 w-full bg-muted overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary-glow transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <div className="p-5">
+          {/* Header row: numbered circle badge + close */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-lg shadow-primary/30">
+                <span className="text-sm font-bold">{stepIndex + 1}</span>
+                <Sparkles className="absolute -top-1 -right-1 h-3.5 w-3.5 text-primary-glow drop-shadow" />
               </div>
-              <div className="text-base font-semibold leading-tight">{current.title}</div>
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+                  Guided tour · {stepIndex + 1} / {steps.length}
+                </div>
+                <div className="text-base font-semibold leading-tight mt-0.5">{current.title}</div>
+              </div>
             </div>
-          </div>
-          <button
-            onClick={() => stop(true)}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            aria-label="Close tour"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="px-4 pb-3 text-sm text-muted-foreground leading-relaxed">
-          {current.body}
-        </div>
-
-        {/* Dotted progress (matches reference) */}
-        <div className="px-4 pb-3 flex items-center gap-1.5">
-          {steps.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                i <= stepIndex ? "bg-primary" : "bg-muted"
-              }`}
-            />
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between gap-2 px-3 pb-3">
-          <Button variant="ghost" size="sm" onClick={() => stop(true)} className="text-muted-foreground">
-            Skip tour
-          </Button>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={prev}
-              disabled={stepIndex === 0}
+            <button
+              onClick={() => stop(true)}
+              className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label="Close tour"
             >
-              <ArrowLeft className="h-3.5 w-3.5 mr-1" />
-              Back
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Body */}
+          <p className="mt-4 text-sm text-muted-foreground leading-relaxed">{current.body}</p>
+
+          {/* Step pips */}
+          <div className="mt-5 flex items-center gap-1.5">
+            {steps.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === stepIndex
+                    ? "w-6 bg-primary"
+                    : i < stepIndex
+                    ? "w-1.5 bg-primary/60"
+                    : "w-1.5 bg-muted"
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Footer actions */}
+          <div className="mt-5 flex items-center justify-between gap-2">
+            <Button variant="ghost" size="sm" onClick={() => stop(true)} className="text-muted-foreground hover:text-foreground">
+              Skip
             </Button>
-            <Button size="sm" onClick={next} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              {isLast ? "Finish" : (<>Next <ArrowRight className="h-3.5 w-3.5 ml-1" /></>)}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={prev} disabled={stepIndex === 0}>
+                <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                Back
+              </Button>
+              <Button
+                size="sm"
+                onClick={next}
+                className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:opacity-90 shadow-md shadow-primary/30"
+              >
+                {isLast ? "Finish tour" : (<>Next <ArrowRight className="h-3.5 w-3.5 ml-1" /></>)}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
